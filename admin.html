@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin Gourmet | Sabores da Feira</title>
+    <link rel="stylesheet" href="admin-style.css">
+    <style>
+        :root { --vermelho: #e31b23; --preto: #121212; --branco: #ffffff; }
+        body { display: flex; background: #f4f4f4; margin: 0; font-family: 'Segoe UI', sans-serif; height: 100vh; overflow: hidden; }
+
+        /* Barra Lateral */
+        aside { width: 340px; background: var(--preto); color: white; padding: 25px; display: flex; flex-direction: column; border-right: 6px solid var(--vermelho); overflow-y: auto; }
+        aside h1 { color: var(--vermelho); font-style: italic; font-weight: 900; text-align: center; text-transform: uppercase; margin-bottom: 30px; letter-spacing: -1px; }
+
+        /* Formulário Novo Item */
+        .form-novo { background: #1a1a1a; padding: 20px; border-radius: 15px; border: 1px solid #333; }
+        .form-novo h4 { color: var(--vermelho); font-size: 11px; text-transform: uppercase; margin: 0 0 15px 0; letter-spacing: 1px; }
+        .form-novo input, .form-novo select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px; border: none; background: #222; color: white; box-sizing: border-box; font-weight: bold; }
+        .btn-lancar { width: 100%; background: var(--vermelho); color: white; border: none; padding: 15px; border-radius: 10px; font-weight: 900; cursor: pointer; text-transform: uppercase; transition: 0.3s; }
+        .btn-lancar:hover { transform: scale(1.02); background: #c2141a; }
+
+        /* Monitor Principal */
+        main { flex: 1; padding: 30px; overflow-y: auto; }
+        .grid-dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; align-items: start; }
+
+        /* Cards de Pedidos (Produção) */
+        .card-producao { background: white; border-radius: 15px; padding: 20px; border-left: 10px solid orange; box-shadow: 0 8px 20px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .status-pendente { color: orange; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+
+        /* Pasta do Cliente (Histórico) */
+        .pasta-cliente { background: white; border-radius: 15px; padding: 15px; margin-bottom: 15px; border: 1px solid #eee; box-shadow: 0 4px 10px rgba(0,0,0,0.02); }
+        .compra-historico { font-size: 11px; padding: 8px; border-bottom: 1px dashed #ddd; color: #555; background: #fafafa; margin-top: 5px; border-radius: 5px; }
+
+        /* Gestão de Stock e Botões */
+        .produto-linha { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .produto-linha img { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; border: 2px solid var(--vermelho); }
+        .controles-stock { display: flex; gap: 5px; align-items: center; }
+        .controles-stock input { width: 55px; padding: 6px; text-align: center; border: 1px solid #ddd; border-radius: 5px; font-size: 11px; font-weight: bold; }
+        
+        .btn-ok { background: var(--preto); color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; font-weight: bold; }
+        .btn-ok:hover { background: green; }
+        
+        .btn-apagar { background: #ff4d4d; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 11px; }
+        .btn-apagar:hover { background: var(--vermelho); }
+
+        .btn-entregar { width: 100%; background: #28a745; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h1>ADMIN GOURMET</h1>
+        
+        <!-- NOVO PRODUTO -->
+        <div class="form-novo">
+            <h4>+ LANÇAR NOVO ITEM</h4>
+            <input type="text" id="n-nome" placeholder="Nome do Produto">
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="n-preco" placeholder="Preço Kz">
+                <input type="number" id="n-stock" placeholder="Qtd">
+            </div>
+            <div style="display:flex; gap:10px;">
+                <input type="number" id="n-pts" placeholder="Pts">
+                <select id="n-cat">
+                    <option value="Comida">🍴 Comida</option>
+                    <option value="Bebida">🥤 Bebida</option>
+                </select>
+            </div>
+            <input type="text" id="n-img" placeholder="imagem.jpg">
+            <button class="btn-lancar" onclick="addProd()">Adicionar ao Menu</button>
+        </div>
+
+        <!-- SALDOS SIDEBAR -->
+        <div style="margin-top:40px;">
+            <span style="color:gray; font-size:10px; font-weight:bold; text-transform:uppercase; letter-spacing: 1px;">Saldos de Pontos</span>
+            <div id="lista-saldos" style="margin-top:15px; font-size:12px;"></div>
+        </div>
+    </aside>
+
+    <main>
+        <header style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px; background:white; padding:20px; border-radius:15px; box-shadow:0 4px 15px rgba(0,0,0,0.05);">
+            <h2 style="margin:0; font-weight:900; text-transform: uppercase;">Monitor de Produção</h2>
+            <button onclick="zerarDia()" style="background:var(--preto); color:white; border:none; padding:10px 20px; border-radius:8px; font-weight:bold; cursor:pointer;">ZERAR HISTÓRICO</button>
+        </header>
+
+        <div class="grid-dashboard">
+            <!-- COLUNA 1: PEDIDOS E PASTAS -->
+            <section>
+                <h3 style="font-size:11px; color:gray; text-transform:uppercase; margin-bottom:15px;">Pedidos para Preparar</h3>
+                <div id="monitor-pendentes"></div>
+
+                <h3 style="font-size:11px; color:gray; text-transform:uppercase; margin-top:40px; margin-bottom:15px;">Pastas dos Clientes (Histórico)</h3>
+                <div id="pastas-clientes"></div>
+            </section>
+
+            <!-- COLUNA 2: STOCK E PONTOS -->
+            <section>
+                <h3 style="font-size:11px; color:gray; text-transform:uppercase; margin-bottom:15px;">Gestão de Menu & Inventário</h3>
+                <div style="background:white; padding:20px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.05);" id="lista-stock"></div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        async function load() {
+            const res = await fetch('/api/dados');
+            const data = await res.json();
+
+            // 1. Monitor de Produção
+            const pendentes = data.vendas.filter(v => v.status === "Pendente");
+            document.getElementById('monitor-pendentes').innerHTML = pendentes.reverse().map(v => `
+                <div class="card-producao">
+                    <div style="display:flex; justify-content:space-between;">
+                        <b style="text-transform: uppercase;">👤 ${v.nome}</b>
+                        <span class="status-pendente">⏳ PENDENTE</span>
+                    </div>
+                    <div style="background:#f9f9f9; padding:10px; border-radius:10px; margin:10px 0; font-size:13px;">
+                        ${v.itens.map(i => `<p style="margin:4px 0;">• <b>${i.qtd}x</b> ${i.nome}</p>`).join('')}
+                    </div>
+                    <button class="btn-entregar" onclick="mudarStatus(${v.idPedido}, 'Concluído')">MARCAR COMO ENTREGUE ✓</button>
+                </div>
+            `).join('');
+
+            // 2. Pastas dos Clientes
+            const pastas = {};
+            data.vendas.forEach(v => {
+                if(!pastas[v.nome]) pastas[v.nome] = { total: 0, compras: [] };
+                pastas[v.nome].total += v.totalFinal;
+                pastas[v.nome].compras.push(v);
+            });
+            document.getElementById('pastas-clientes').innerHTML = Object.keys(pastas).reverse().map(nome => `
+                <div class="pasta-cliente">
+                    <div style="display:flex; justify-content:space-between; font-weight:900; font-size:14px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                        <span>👤 ${nome}</span>
+                        <span style="color:var(--vermelho)">${pastas[nome].total} Kz</span>
+                    </div>
+                    ${pastas[nome].compras.map((c, i) => `
+                        <div class="compra-historico">
+                            <b>#${i+1}</b> - [${c.data}] | ${c.totalFinal} Kz
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+
+            // 3. Saldos na Sidebar
+            document.getElementById('lista-saldos').innerHTML = data.clientes.map(c => `
+                <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #222;">
+                    <span>${c.nome}</span> <b style="color:var(--vermelho)">${Math.floor(c.pontos)} pts</b>
+                </div>
+            `).join('');
+
+            // 4. Gestão de Stock (Com Botão Apagar)
+            if (document.activeElement.tagName !== 'INPUT') {
+                document.getElementById('lista-stock').innerHTML = data.produtos.filter(p => p.nome).map(p => `
+                    <div class="produto-linha">
+                        <img src="${p.imagem}" onerror="this.src='https://placeholder.com'">
+                        <div style="flex:1; font-size:12px; font-weight:bold;">${p.nome}</div>
+                        <div class="controles-stock">
+                            <input type="number" id="p-${p.id}" value="${p.preco}" title="Preço">
+                            <input type="number" id="s-${p.id}" value="${p.stock}" title="Stock">
+                            <input type="number" id="pts-${p.id}" value="${p.pontos || 0}" style="border-color:var(--vermelho)" title="Pontos">
+                            <button class="btn-ok" onclick="save(${p.id})">OK</button>
+                            <button class="btn-apagar" onclick="apagar(${p.id})">🗑️</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function mudarStatus(id, st) {
+            await fetch('/api/status-pedido', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ idPedido: id, novoStatus: st }) });
+            load();
+        }
+
+        async function save(id) {
+            const preco = document.getElementById(`p-${id}`).value;
+            const stock = document.getElementById(`s-${id}`).value;
+            const pontos = document.getElementById(`pts-${id}`).value;
+            await fetch('/api/atualizar-produto', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id, preco, stock, pontos }) });
+            load();
+        }
+
+        async function apagar(id) {
+            if(confirm("Deseja remover permanentemente este produto do menu?")) {
+                await fetch('/api/apagar-produto', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id }) });
+                load();
+            }
+        }
+
+        async function addProd() {
+            const nome = document.getElementById('n-nome').value;
+            const preco = Number(document.getElementById('n-preco').value);
+            const stock = Number(document.getElementById('n-stock').value);
+            const pontos = Number(document.getElementById('n-pts').value);
+            const categoria = document.getElementById('n-cat').value;
+            const imagem = "imagens/" + document.getElementById('n-img').value;
+            if(!nome || !preco) return alert("Nome e Preço são obrigatórios!");
+            await fetch('/api/novo-produto', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ nome, preco, stock, pontos, categoria, imagem }) });
+            location.reload();
+        }
+
+        async function zerarDia() {
+            if(confirm("CUIDADO: Isso apagará todas as vendas registradas hoje. Continuar?")) {
+                const res = await fetch('/api/dados');
+                const data = await res.json();
+                data.vendas = []; 
+                await fetch('/api/novo-produto', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+                location.reload();
+            }
+        }
+
+        setInterval(load, 5000);
+        load();
+    </script>
+</body>
+</html>

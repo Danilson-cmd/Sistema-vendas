@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sabores da Feira - Menu Gourmet</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Estilos de Abas Temáticas */
+        .tabs-container { display: flex; justify-content: center; gap: 15px; margin: 20px 0; }
+        .btn-tab { 
+            padding: 12px 25px; border-radius: 30px; border: 2px solid white; 
+            font-weight: 900; cursor: pointer; transition: 0.3s; 
+            text-transform: uppercase; font-size: 0.8rem; 
+        }
+        .tab-comida { background: white; color: #e31b23; box-shadow: 0 4px 15px rgba(227, 27, 35, 0.2); }
+        .tab-bebida { background: #121212; color: white; border-color: #e31b23; }
+        
+        /* Botão Flutuante do Carrinho (Preto e Vermelho) */
+        .btn-cart-float {
+            position: fixed; bottom: 25px; right: 25px;
+            background: #121212; color: white; border: 4px solid #e31b23;
+            width: 75px; height: 75px; border-radius: 50%;
+            font-size: 30px; cursor: pointer; z-index: 100;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4); transition: 0.3s;
+        }
+        .btn-cart-float:active { transform: scale(0.9); }
+        .cart-badge { 
+            position: absolute; top: -5px; right: -5px; background: #e31b23; 
+            padding: 4px 10px; border-radius: 20px; font-size: 14px; 
+            font-weight: bold; border: 2px solid #121212; 
+        }
+
+        /* Notificação Toast Gourmet */
+        #toast { 
+            display: none; position: fixed; top: 20px; right: 20px; 
+            background: #121212; color: white; border-left: 8px solid #e31b23; 
+            padding: 20px; border-radius: 12px; z-index: 10000; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideIn 0.5s ease-out; 
+        }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Estilo para Itens Esgotados */
+        .btn-esgotado { background: #ccc !important; cursor: not-allowed !important; }
+        .stock-tag { font-size: 10px; font-weight: bold; margin-bottom: 8px; }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <header>
+        <h1>SABORES DA FEIRA</h1>
+        <div class="tabs-container">
+            <button class="btn-tab tab-comida" onclick="carregar('Comida')">🍴 Comidas</button>
+            <button class="btn-tab tab-bebida" onclick="carregar('Bebida')">🥤 Bebidas</button>
+        </div>
+    </header>
+
+    <!-- Grade de Produtos -->
+    <div class="container" id="lista"></div>
+
+    <!-- Carrinho Flutuante -->
+    <button class="btn-cart-float" onclick="abrirModal()">
+        🛒 <span class="cart-badge" id="qtd">0</span>
+    </button>
+
+    <!-- Notificação de Sucesso -->
+    <div id="toast">
+        <div style="display:flex; align-items:center; gap:15px;">
+            <span style="font-size:24px;">✅</span>
+            <div>
+                <b style="color:#e31b23; text-transform:uppercase;">Pedido Enviado!</b>
+                <p style="margin:0; font-size:11px; opacity:0.7;">Prepare o apetite, já estamos a tratar de tudo.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Finalização -->
+    <div id="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:1000; align-items:center; justify-content:center; padding:15px;">
+        <div style="background:white; width:100%; max-width:400px; border-radius:25px; overflow:hidden; color:black; box-shadow: 0 20px 50px rgba(0,0,0,0.5);">
+            <div style="background:#e31b23; color:white; padding:20px; text-align:center; font-weight:900; text-transform:uppercase; letter-spacing:1px;">Revisão do Pedido</div>
+            
+            <div id="itens-carrinho" style="padding:20px; max-height:200px; overflow-y:auto; border-bottom:1px solid #eee;"></div>
+            
+            <div style="padding:20px;">
+                <input type="text" id="nome-cliente" placeholder="Escreva o seu nome" onblur="buscarPontos()" style="width:100%; padding:15px; border:2px solid #eee; border-radius:12px; margin-bottom:10px; font-weight:bold; outline:none; font-size:1rem;">
+                
+                <!-- Área de Pontos e Fidelidade -->
+                <div id="area-pontos" style="display:none; background:#f9f9f9; padding:15px; border-radius:15px; border:2px dashed #ddd; margin-bottom:15px;">
+                    <p style="margin:0; font-size:12px; color:#666;">Olá! Tens <b id="pts-disponiveis" style="color:#e31b23;">0</b> pontos acumulados.</p>
+                    <label style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; margin-top:8px;">
+                        <span style="font-weight:bold; font-size:13px;">Usar pontos (Desc. até 30%)?</span>
+                        <input type="checkbox" id="usar-pontos" onchange="atualizarTotal()" style="width:22px; height:22px;">
+                    </label>
+                </div>
+
+                <!-- Exibição do Valor Final -->
+                <div style="display:flex; justify-content:space-between; align-items:flex-end; font-weight:900; color:#e31b23; margin-bottom:10px;">
+                    <span style="font-size:1rem; color:#999; text-transform:uppercase;">A Pagar:</span>
+                    <div style="text-align:right;">
+                        <div id="desconto-txt" style="font-size:12px; color:green; display:none; margin-bottom:2px;"></div>
+                        <span id="total-modal" style="font-size:1.8rem;">0 Kz</span>
+                    </div>
+                </div>
+
+                <button onclick="enviarPedido()" id="btn-confirmar" style="width:100%; background:#e31b23; color:white; border:none; padding:18px; border-radius:15px; font-weight:bold; font-size:1.2rem; cursor:pointer;">CONFIRMAR PEDIDO</button>
+                
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button onclick="limparPedido()" style="flex:1; background:black; color:white; border:none; padding:10px; border-radius:12px; cursor:pointer; font-size:11px; font-weight:bold;">LIMPAR TUDO</button>
+                    <button onclick="document.getElementById('modal').style.display='none'" style="flex:1; border:none; background:none; color:#999; cursor:pointer; font-size:12px; font-weight:bold;">VOLTAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let carrinho = {}; 
+        let totalOriginal = 0; 
+        let saldoPts = 0;
+
+        // 1. Carregar produtos do servidor e exibir quantidades
+        async function carregar(cat = 'Comida') {
+            const res = await fetch('/api/dados');
+            const data = await res.json();
+            
+            // Filtra produtos válidos (com nome) para evitar o erro de 'indefinido'
+            const prods = data.produtos.filter(p => p.nome && (p.categoria || 'Comida') === cat);
+            
+            document.getElementById('lista').innerHTML = prods.map(p => `
+                <div class="card">
+                    <img src="${p.imagem}" onerror="this.src='https://placeholder.com{p.nome}'">
+                    <div class="card-info">
+                        <h3>${p.nome}</h3>
+                        <p class="preco">${p.preco} Kz</p>
+                        <p class="stock-tag" style="color:${p.stock > 0 ? '#888' : 'red'};">
+                            ${p.stock > 0 ? `Disponível: ${p.stock}` : 'ESGOTADO'}
+                        </p>
+                        <button class="btn-add ${p.stock > 0 ? '' : 'btn-esgotado'}" 
+                            onclick="add('${p.nome}', ${p.preco}, ${p.id}, ${p.stock})" 
+                            ${p.stock > 0 ? '' : 'disabled'}>
+                            ${p.stock > 0 ? 'ADICIONAR' : 'SEM STOCK'}
+                        </button>
+                    </div>
+                </div>`).join('');
+        }
+
+        // 2. Adicionar ao carrinho (Agrupado por quantidade)
+        function add(n, p, id, sMax) {
+            const qtdNoCarrinho = carrinho[id] ? carrinho[id].qtd : 0;
+            
+            if (qtdNoCarrinho < sMax) {
+                if (carrinho[id]) { carrinho[id].qtd++; } 
+                else { carrinho[id] = {id, nome:n, preco:p, qtd:1}; }
+                
+                totalOriginal += p;
+                document.getElementById('qtd').innerText = Object.values(carrinho).reduce((a,b)=>a+b.qtd,0);
+            } else {
+                alert("Não podes adicionar mais deste item, stock atingido!");
+            }
+        }
+
+        // 3. Sistema de Pontos Inteligente
+        async function buscarPontos() {
+            const nome = document.getElementById('nome-cliente').value;
+            if(!nome) return;
+            const res = await fetch(`/api/cliente/${nome}`);
+            const cli = await res.json();
+            saldoPts = cli.pontos;
+            document.getElementById('pts-disponiveis').innerText = Math.floor(saldoPts);
+            document.getElementById('area-pontos').style.display = saldoPts > 0 ? 'block' : 'none';
+            atualizarTotal();
+        }
+
+        // 4. Cálculo de Desconto (Teto de 30%)
+        function atualizarTotal() {
+            let final = totalOriginal;
+            let descCalculado = 0;
+            const usar = document.getElementById('usar-pontos').checked;
+            
+            if (usar) {
+                descCalculado = Math.min(saldoPts, totalOriginal * 0.30);
+                final -= descCalculado;
+            }
+
+            const descLabel = document.getElementById('desconto-txt');
+            if(descCalculado > 0) {
+                descLabel.innerText = `- ${Math.floor(descCalculado)} Kz de desconto`;
+                descLabel.style.display = 'block';
+            } else {
+                descLabel.style.display = 'none';
+            }
+            
+            document.getElementById('total-modal').innerText = Math.floor(final) + " Kz";
+        }
+
+        // 5. Abrir Modal de Revisão
+        function abrirModal() {
+            if(Object.keys(carrinho).length === 0) return;
+            document.getElementById('modal').style.display = 'flex';
+            document.getElementById('itens-carrinho').innerHTML = Object.values(carrinho).map(i => `
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px dashed #eee; padding-bottom:5px;">
+                    <span><b style="color:#e31b23">${i.qtd}x</b> ${i.nome}</span>
+                    <strong>${i.preco * i.qtd} Kz</strong>
+                </div>`).join('');
+            atualizarTotal();
+        }
+
+        // 6. Limpar Pedido
+        function limparPedido() {
+            if(confirm("Desejas apagar todos os itens do teu pedido?")) {
+                carrinho = {}; totalOriginal = 0; location.reload();
+            }
+        }
+
+        // 7. Enviar Pedido Final
+        async function enviarPedido() {
+            const nome = document.getElementById('nome-cliente').value.trim();
+            if(!nome) {
+                document.getElementById('nome-cliente').style.borderColor = 'red';
+                return alert("Por favor, introduz o teu nome.");
+            }
+            
+            document.getElementById('btn-confirmar').innerText = "A ENVIAR...";
+            document.getElementById('btn-confirmar').disabled = true;
+
+            await fetch('/api/pedido', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ 
+                    nome, 
+                    itens: Object.values(carrinho), 
+                    totalOriginal, 
+                    usarPontos: document.getElementById('usar-pontos').checked 
+                })
+            });
+
+            // Sucesso
+            document.getElementById('modal').style.display = 'none';
+            document.getElementById('toast').style.display = 'block';
+            setTimeout(() => { location.reload(); }, 3500);
+        }
+
+        carregar();
+    </script>
+</body>
+</html>

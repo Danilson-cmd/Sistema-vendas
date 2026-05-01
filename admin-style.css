@@ -1,0 +1,141 @@
+/* Estilo Administrativo Gourmet */
+:root {
+    --vermelho: #e31b23;
+    --preto: #121212;
+    --branco: #ffffff;
+    --bg-fundo: #f0f2f5;
+    --sucesso: #28a745;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    display: flex;
+    height: 100vh;
+    background-color: var(--bg-fundo);
+}
+
+/* Menu Lateral */
+aside {
+    width: 280px;
+    background: var(--preto);
+    color: var(--branco);
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    border-right: 6px solid var(--vermelho);
+}
+
+aside h1 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--vermelho);
+    text-transform: uppercase;
+    font-style: italic;
+    margin-bottom: 50px;
+    text-align: center;
+}
+
+/* Área de Trabalho */
+main {
+    flex: 1;
+    padding: 40px;
+    overflow-y: auto;
+}
+
+.painel-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+}
+
+/* Cards de Informação */
+.secao-titulo {
+    font-size: 0.8rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+    margin-bottom: 20px;
+    display: block;
+}
+
+.card-branco {
+    background: var(--branco);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+
+/* Lista de Vendas */
+.venda-item {
+    background: var(--branco);
+    border-left: 8px solid var(--vermelho);
+    margin-bottom: 15px;
+    padding: 20px;
+    border-radius: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.venda-total {
+    color: var(--vermelho);
+    font-weight: 900;
+    font-size: 1.3rem;
+}
+
+/* Edição de Stock */
+.produto-linha {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.produto-linha:last-child { border: none; }
+
+.produto-linha img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    object-fit: cover;
+    margin-right: 15px;
+    border: 2px solid var(--vermelho);
+}
+
+.controles {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.controles input {
+    width: 70px;
+    padding: 10px;
+    border: 2px solid #eee;
+    border-radius: 10px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.controles input:focus {
+    border-color: var(--vermelho);
+    outline: none;
+}
+
+.btn-salvar {
+    background: var(--preto);
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: 0.3s;
+}
+
+.btn-salvar:hover {
+    background: var(--vermelho);
+}

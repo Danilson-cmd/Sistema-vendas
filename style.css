@@ -1,0 +1,120 @@
+/* Estilo Global Gourmet */
+:root {
+    --vermelho: #e31b23;
+    --preto: #121212;
+    --branco: #ffffff;
+    --cinza-claro: #f8f8f8;
+}
+
+body {
+    background-color: var(--cinza-claro);
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    padding-bottom: 100px;
+}
+
+/* Cabeçalho Elegante */
+header {
+    background: linear-gradient(135deg, var(--vermelho), #b3141a);
+    color: var(--branco);
+    padding: 40px 20px;
+    text-align: center;
+    border-bottom: 8px solid var(--preto);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2.5rem;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+    font-style: italic;
+    font-weight: 900;
+}
+
+/* Grade de Produtos */
+.container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.card {
+    background: var(--branco);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    transition: transform 0.3s ease;
+    border-bottom: 5px solid var(--vermelho);
+}
+
+.card:hover {
+    transform: translateY(-10px);
+}
+
+.card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+}
+
+.card-info {
+    padding: 15px;
+    text-align: center;
+}
+
+.card-info h3 {
+    margin: 0;
+    font-size: 1rem;
+    text-transform: uppercase;
+    color: var(--preto);
+}
+
+.card-info .preco {
+    color: var(--vermelho);
+    font-weight: 900;
+    font-size: 1.2rem;
+    margin: 10px 0;
+}
+
+.btn-add {
+    background: var(--preto);
+    color: var(--branco);
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.btn-add:active {
+    background: var(--vermelho);
+}
+
+/* Carrinho Flutuante */
+.carrinho-bar {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    background: var(--preto);
+    color: var(--branco);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    box-sizing: border-box;
+    border-top: 4px solid var(--vermelho);
+    z-index: 100;
+}
+
+.total-txt {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: var(--vermelho);
+}
