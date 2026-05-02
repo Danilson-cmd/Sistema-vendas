@@ -1,23 +1,16 @@
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const app = express();
 
 app.use(express.json());
-// Permite que o navegador aceda às pastas de imagens e arquivos estáticos
 app.use('/imagens', express.static(path.join(__dirname, 'imagens')));
 app.use(express.static(__dirname));
 
-// ROTAS PARA LINKS LIMPOS (Sem o .html no navegador)
 app.get('/cliente', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
 
-const DATA_FILE = 'data.json';
-const ler = () => JSON.parse(fs.readFileSync(DATA_FILE));
-const gravar = (d) => fs.writeFileSync(DATA_FILE, JSON.stringify(d, null, 2));
-
-// Estrutura inicial do banco de dados (Os 8 itens originais)
-const inicial = {
+// BANCO DE DADOS EM MEMÓRIA (Necessário para rodar na Vercel gratuita)
+let db = {
     clientes: [], vendas: [],
     produtos: [
         {id: 1, nome: "Pavê", preco: 1500, stock: 20, imagem: "imagens/pave.jpg", categoria: "Comida", pontos: 100},
@@ -31,48 +24,49 @@ const inicial = {
     ]
 };
 
-if (!fs.existsSync(DATA_FILE)) { gravar(inicial); }
+// Funções de leitura e gravação agora apenas manipulam a variável 'db'
+const ler = () => db;
+const gravar = (d) => { db = d; };
 
 // API: Buscar todos os dados
 app.get('/api/dados', (req, res) => res.json(ler()));
 
 // API: Buscar pontos de um cliente específico
 app.get('/api/cliente/:nome', (req, res) => {
-    const db = ler();
-    const cliente = db.clientes.find(c => c.nome.toLowerCase() === req.params.nome.toLowerCase());
+    const dados = ler();
+    const cliente = dados.clientes.find(c => c.nome.toLowerCase() === req.params.nome.toLowerCase());
     res.json(cliente || { nome: req.params.nome, pontos: 0 });
 });
 
 // API: Processar novo pedido
 app.post('/api/pedido', (req, res) => {
-    const db = ler();
+    const dados = ler();
     const { nome, itens, totalOriginal, usarPontos } = req.body;
     
-    // Validar Stock
     for (let i of itens) {
-        const p = db.produtos.find(prod => prod.id === i.id);
+        const p = dados.produtos.find(prod => prod.id === i.id);
         if (!p || p.stock < i.qtd) return res.status(400).json({error: "Sem stock"});
     }
 
-    let cliente = db.clientes.find(c => c.nome.toLowerCase() === nome.toLowerCase());
-    if (!cliente) { cliente = { nome, pontos: 0 }; db.clientes.push(cliente); }
+    let cliente = dados.clientes.find(c => c.nome.toLowerCase() === nome.toLowerCase());
+    if (!cliente) { cliente = { nome, pontos: 0 }; dados.clientes.push(cliente); }
 
     let desconto = 0;
     if (usarPontos) {
-        desconto = Math.min(cliente.pontos, totalOriginal * 0.30); // Teto de 30%
-        cliente.pontos -= desconto; // 1 Ponto = 1 Kz
+        desconto = Math.min(cliente.pontos, totalOriginal * 0.30);
+        cliente.pontos -= desconto;
     }
 
     let pontosGanhosNestaCompra = 0;
     itens.forEach(i => {
-        const p = db.produtos.find(prod => prod.id === i.id);
+        const p = dados.produtos.find(prod => prod.id === i.id);
         p.stock -= i.qtd;
         pontosGanhosNestaCompra += (p.pontos || 0) * i.qtd;
     });
     
     cliente.pontos += pontosGanhosNestaCompra;
     
-    db.vendas.push({ 
+    dados.vendas.push({ 
         idPedido: Date.now(), 
         nome, 
         totalFinal: totalOriginal - desconto, 
@@ -82,49 +76,48 @@ app.post('/api/pedido', (req, res) => {
         itens 
     });
     
-    gravar(db);
+    gravar(dados);
     res.json({ success: true });
 });
 
-// API: Mudar status do pedido (Pendente -> Concluído)
 app.post('/api/status-pedido', (req, res) => {
-    const db = ler();
+    const dados = ler();
     const { idPedido, novoStatus } = req.body;
-    const v = db.vendas.find(vend => vend.idPedido === idPedido);
-    if(v) { v.status = novoStatus; gravar(db); res.json({success:true}); }
+    const v = dados.vendas.find(vend => vend.idPedido === idPedido);
+    if(v) { v.status = novoStatus; gravar(dados); res.json({success:true}); }
 });
 
-// API: Atualizar um produto existente (Preço, Stock, Pontos)
 app.post('/api/atualizar-produto', (req, res) => {
-    const db = ler();
+    const dados = ler();
     const { id, preco, stock, pontos } = req.body;
-    const p = db.produtos.find(prod => prod.id === id);
+    const p = dados.produtos.find(prod => prod.id === id);
     if(p) { 
         p.preco = Number(preco); 
         p.stock = Number(stock); 
         p.pontos = Number(pontos); 
-        gravar(db); 
+        gravar(dados); 
         res.json({success:true}); 
     }
 });
 
-// API: Adicionar novo produto
 app.post('/api/novo-produto', (req, res) => {
-    const db = ler();
+    const dados = ler();
     const novo = { ...req.body, id: Date.now() };
-    db.produtos.push(novo);
-    gravar(db);
+    dados.produtos.push(novo);
+    gravar(dados);
     res.json({ success: true });
 });
 
-// API: Apagar produto do menu
 app.post('/api/apagar-produto', (req, res) => {
-    const db = ler();
+    const dados = ler();
     const { id } = req.body;
-    db.produtos = db.produtos.filter(p => p.id !== id);
-    gravar(db);
+    dados.produtos = dados.produtos.filter(p => p.id !== id);
+    gravar(dados);
     res.json({ success: true });
 });
 
-const PORT = 3000;
-app.listen(PORT, () => console.log(`🚀 Servidor Online em http://localhost:${PORT}/cliente`));
+// AJUSTE DE PORTA PARA VERCEL
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Servidor rodando na porta ${PORT}`));
+
+module.exports = app;
